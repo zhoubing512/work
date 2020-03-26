@@ -1,0 +1,354 @@
+select phone_no,date_time from (
+select phone_no,date_time,max(to_date(date_time,'yyyy-mm-dd hh24:mi:ss')*24*60)-min(to_date(date_time,'yyyy-mm-dd hh24:mi:ss')*24*60) as ddf from business.dwd_user_location_5minute bdul 
+where bdul.dy = '2019' and bdul.dm = '11' and bdul.dd in ('16','17','18')
+group by bdul.dd,bdul.phone_no 
+having bdul.ddf >= 30
+) a 
+left join business.base_mobile_locale bml on substr(a.phone_no,0,7) = bml.mobilenumber
+where bml.mobilecity != '德阳市'
+
+
+
+黔西南布依族苗族自治州兴义市
+黔南布依族苗族自治州都匀市
+黔东南苗族侗族自治州凯里市
+集宁 ----乌兰察布市
+博尔塔拉蒙古自治州博乐市
+巴音郭楞蒙古自治州库尔勒市
+伊犁哈萨克自治州奎屯市
+湘西土家族苗族自治州吉首市
+
+##入
+create table workspace.zb_xr_20191125(phone_no string)
+row format delimited fields terminated by ',' lines terminated by '\n' stored as textfile;
+
+load data local inpath '/mnt/disk1/user/lj/temp_files/xrn_phone.txt' into table workspace.zb_xr_20191125;
+##出
+create table workspace.zbb_xc_20191121(phone_no string)
+row format delimited fields terminated by ',' lines terminated by '\n' stored as textfile;
+
+load data local inpath '/mnt/disk1/user/lj/temp_files/xc_phone.txt' into table workspace.zbb_xc_20191121;
+
+
+##携号转出
+select distinct(a.phone_no),
+sum(case a.calltype_id 
+		where  '01' then a.call_duration_m else 0 end),
+		a.calltype_id,
+		a.call_times,
+		a.call_duration,
+		a.dial_type 
+		
+from datamart.data_dwb_cal_user_voc_yx_ds a 
+left join workspace.th_encrypt_zb_xc_20191121 b 
+on a.phone_no = b.phone_no 
+left join business.base_mobile_locale c
+on substr(b.opposite_no,0,7)=c.mobilenumber
+where a.dy = '2019' and a.dm = '10' and c.mobiletype <> '中国移动'
+limit 10;
+
+##携号转入
+select a.opposite_no,a.call_duration_m,a.calltype_id,a.call_times,a.call_duration,a.dial_type from datamart.data_dwb_cal_user_voc_yx_ds a 
+left join workspace.th_encrypt_zb_xr_20191121 b 
+on a.opposite_no = b.phone_no 
+left join business.base_mobile_locale c
+on substr(b.phone_no,0,7)=c.mobilenumber
+where a.dy = '2019' and a.dm = '10' and c.mobiletype <> '中国移动'
+limit 10;
+
+-----匹配过网通话
+#出
+drop table workspace.zbb_xc_20191121_8;
+create table workspace.zbb_xc_20191121_8
+  row format delimited fields terminated by '\001' 
+  stored as orc tblproperties ('orc.compress'='ZLIB') 
+  as
+select phone_no,calltype_id,count(distinct opposite_no),sum(call_duration_m),sum (call_times),sum (call_duration) from (
+select a.phone_no,b.opposite_no,call_duration_m,calltype_id,call_times,call_duration 
+from workspace.th_encrypt_zbb_xc_20191121  as a
+left join 
+(select phone_no,opposite_no,call_duration_m,calltype_id,call_times,call_duration 
+    from datamart.data_dwb_cal_user_voc_yx_ds 
+  where dy='2019' and dm='08' ) as b on a.phone_no=b.phone_no
+left join business.base_mobile_locale c on  substr(b.opposite_no,1,7)=c.mobilenumber
+where c.mobiletype <> '中国移动'
+) as d
+
+group by  phone_no,calltype_id
+;
+
+
+create table workspace.zbb_xc_20191121_8910
+  row format delimited fields terminated by '\001' 
+  stored as orc tblproperties ('orc.compress'='ZLIB') 
+  as
+select phone_no,
+case when count(dy=8)>1 then 1 else 0 end,
+case when count(dy=9)>1 then 1 else 0 end,
+case when count(dy=10)>1 then 1 else 0 end from 
+(select a.phone_no,b.dy,b.dm from workspace.th_encrypt_zbb_xc_20191121 a
+left join (select phone_no,opposite_no,dy,dm 
+    from datamart.data_dwb_cal_user_voc_yx_ds
+     
+  where dy='2019' and dm in ('08','09','10')
+  ) as b on a.phone_no=b.phone_no
+
+)as d;
+
+
+#入
+drop table workspace.zb_xr_20191125_7;
+create table workspace.zb_xr_20191125_7 
+    row format delimited fields terminated by '\001' 
+    stored as orc tblproperties ('orc.compress'='ZLIB') 
+as 
+select opposite_no aa,calltype_id bb,count(distinct phone_no) cc,sum(call_duration_m) dd,count(phone_no) ee,sum (call_duration) ff from (
+select a.phone_no,b.opposite_no,call_duration_m,calltype_id,call_times,call_duration 
+from workspace.th_encrypt_zb_xr_20191125  as a
+left join 
+(select phone_no,opposite_no,call_duration_m,calltype_id,call_times,call_duration 
+    from datamart.data_dwb_cal_user_voc_yx_ds 
+  where dy='2019' and dm='07' ) as b on a.phone_no=b.opposite_no
+) as d
+group by  opposite_no,calltype_id
+;
+
+select count(aa) from zb_xr_20191125_10;
+
+
+drop table workspace.zbb_xc_20191121_8910;
+create table workspace.zbb_xc_20191121_8910 
+    row format delimited fields terminated by '\001' 
+    stored as orc tblproperties ('orc.compress'='ZLIB') 
+as 
+select distinct a.phone_no
+,case when b.phone_no is not null then '1' else '0' end as xc_8yue
+,case when c.phone_no is not null then '1' else '0' end as xc_9yue
+,case when d.phone_no is not null then '1' else '0' end as xc_10yue
+  from workspace.th_encrypt_zbb_xc_20191121 a
+left join zbb_xc_20191121_8 b on a.phone_no = b.phone_no
+left join zbb_xc_20191121_9 c on a.phone_no = c.phone_no
+left join zbb_xc_20191121_10 d on a.phone_no = d.phone_no
+;
+
+
+
+
+zbb_xr_20191121_8
+aa
+zbb_xr_20191121_9
+aa
+zbb_xr_20191121_10
+aa
+drop table workspace.zb_xr_20191125_78910;
+create table workspace.zb_xr_20191125_78910 
+    row format delimited fields terminated by '\001' 
+    stored as orc tblproperties ('orc.compress'='ZLIB') 
+as 
+select distinct a.phone_no
+,case when e.aa is not null then '1' else '0' end as xr_7yue
+,case when b.aa is not null then '1' else '0' end as xr_8yue
+,case when c.aa is not null then '1' else '0' end as xr_9yue
+,case when d.aa is not null then '1' else '0' end as xr_10yue
+  from workspace.th_encrypt_zb_xr_20191125 a
+left join zb_xr_20191125_7 e on a.phone_no = e.aa
+left join zb_xr_20191125_8 b on a.phone_no = b.aa
+left join zb_xr_20191125_9 c on a.phone_no = c.aa
+left join zb_xr_20191125_10 d on a.phone_no = d.aa
+;
+
+select count(*) from workspace.zb_xr_20191125_78910;
+select count(a.phone_no) from workspace.zbb_xr_20191121_8910 a where a.xr_8yue='0' and a.xr_9yue='0' and a.xr_10yue='1';
+
+
+
+1859978
+
+1859978	新疆维吾尔自治区		中国联通	22	300000
+
+
+
+
+##入 20191126
+create table workspace.zb_xr_20191126(phone_no string)
+row format delimited fields terminated by ',' lines terminated by '\n' stored as textfile;
+
+load data local inpath '/mnt/disk1/user/lj/temp_files/xr_20191126.txt' into table workspace.zb_xr_20191126;
+
+drop table workspace.zb_xr_20191126_7;
+create table workspace.zb_xr_20191126_7 
+    row format delimited fields terminated by '\001' 
+    stored as orc tblproperties ('orc.compress'='ZLIB') 
+as 
+select opposite_no aa,calltype_id bb,count(distinct phone_no) cc,sum(call_duration_m) dd,count(phone_no) ee,sum (call_duration) ff from (
+select a.phone_no,b.opposite_no,call_duration_m,calltype_id,call_times,call_duration 
+from workspace.th_encrypt_zb_xr_20191126  as a
+left join 
+(select phone_no,opposite_no,call_duration_m,calltype_id,call_times,call_duration 
+    from datamart.data_dwb_cal_user_voc_yx_ds 
+  where dy='2019' and dm='07' ) as b on a.phone_no=b.opposite_no
+) as d
+group by  opposite_no,calltype_id
+;
+
+drop table workspace.zb_xr_20191126_8;
+create table workspace.zb_xr_20191126_8 
+    row format delimited fields terminated by '\001' 
+    stored as orc tblproperties ('orc.compress'='ZLIB') 
+as 
+select opposite_no aa,calltype_id bb,count(distinct phone_no) cc,sum(call_duration_m) dd,count(phone_no) ee,sum (call_duration) ff from (
+select a.phone_no,b.opposite_no,call_duration_m,calltype_id,call_times,call_duration 
+from workspace.th_encrypt_zb_xr_20191126  as a
+left join 
+(select phone_no,opposite_no,call_duration_m,calltype_id,call_times,call_duration 
+    from datamart.data_dwb_cal_user_voc_yx_ds 
+  where dy='2019' and dm='08' ) as b on a.phone_no=b.opposite_no
+) as d
+group by  opposite_no,calltype_id
+;
+
+drop table workspace.zb_xr_20191126_9;
+create table workspace.zb_xr_20191126_9 
+    row format delimited fields terminated by '\001' 
+    stored as orc tblproperties ('orc.compress'='ZLIB') 
+as 
+select opposite_no aa,calltype_id bb,count(distinct phone_no) cc,sum(call_duration_m) dd,count(phone_no) ee,sum (call_duration) ff from (
+select a.phone_no,b.opposite_no,call_duration_m,calltype_id,call_times,call_duration 
+from workspace.th_encrypt_zb_xr_20191126  as a
+left join 
+(select phone_no,opposite_no,call_duration_m,calltype_id,call_times,call_duration 
+    from datamart.data_dwb_cal_user_voc_yx_ds 
+  where dy='2019' and dm='09' ) as b on a.phone_no=b.opposite_no
+) as d
+group by  opposite_no,calltype_id
+;
+
+drop table workspace.zb_xr_20191126_10;
+create table workspace.zb_xr_20191126_10 
+    row format delimited fields terminated by '\001' 
+    stored as orc tblproperties ('orc.compress'='ZLIB') 
+as 
+select opposite_no aa,calltype_id bb,count(distinct phone_no) cc,sum(call_duration_m) dd,count(phone_no) ee,sum (call_duration) ff from (
+select a.phone_no,b.opposite_no,call_duration_m,calltype_id,call_times,call_duration 
+from workspace.th_encrypt_zb_xr_20191126  as a
+left join 
+(select phone_no,opposite_no,call_duration_m,calltype_id,call_times,call_duration 
+    from datamart.data_dwb_cal_user_voc_yx_ds 
+  where dy='2019' and dm='10' ) as b on a.phone_no=b.opposite_no
+) as d
+group by  opposite_no,calltype_id
+;
+
+drop table workspace.zb_xr_20191126_78910;
+create table workspace.zb_xr_20191126_78910 
+    row format delimited fields terminated by '\001' 
+    stored as orc tblproperties ('orc.compress'='ZLIB') 
+as 
+select distinct a.phone_no
+,case when e.aa is not null then '1' else '0' end as xr_7yue
+,case when b.aa is not null then '1' else '0' end as xr_8yue
+,case when c.aa is not null then '1' else '0' end as xr_9yue
+,case when d.aa is not null then '1' else '0' end as xr_10yue
+  from workspace.th_encrypt_zb_xr_20191126 a
+left join zb_xr_20191126_7 e on a.phone_no = e.aa
+left join zb_xr_20191126_8 b on a.phone_no = b.aa
+left join zb_xr_20191126_9 c on a.phone_no = c.aa
+left join zb_xr_20191126_10 d on a.phone_no = d.aa
+;
+
+##中江提数
+data_dm_uv_info_m
+dwd_user_location_month
+dw_user_prc_bxl_latest
+base_cell_info
+
+create table workspace.zb_zj_20191126(ci string)
+row format delimited fields terminated by ',' lines terminated by '\n' stored as textfile;
+
+load data local inpath '/mnt/disk1/user/lj/temp_files/ci.txt' into table workspace.zb_zj_20191126;
+
+
+drop table workspace.zb_zj_20191126_result_test;
+create table workspace.zb_zj_20191126_result_test 
+    row format delimited fields terminated by '\001' 
+    stored as orc tblproperties ('orc.compress'='ZLIB') 
+as 
+select i.ci,i.cell_name,i.phone_no,i.sfkd,
+case when j.phone_no is not null then '1' else '0' end as sfbxl,
+cy_num,k.avg_3mon_arpu 
+from 
+(
+  select  ci,cell_name,phone_no,sfkd,cy_num
+  from 
+  (
+    select f.ci,f.cell_name,f.phone_no,g.key_phone_no,
+    case when g.phone_no is not null then '1' else '0' end as sfkd
+    from 
+    (
+      select  a.ci,a.cell_name,b.phone_no 
+      from workspace.zb_zj_20191126_bcell a
+      left join workspace.zb_zj_20191126_cz b 
+      on a.ci = b.ci
+    ) f
+    left join datamart.dw_user_kd_latest g 
+    on f.phone_no=g.phone_no
+  ) as h
+  left join (    select gg.key_phone_no,count(distinct gg.phone_no) cy_num
+                from 
+                (
+                  select  a.ci,a.cell_name,b.phone_no 
+                  from workspace.zb_zj_20191126_bcell a
+                  left join workspace.zb_zj_20191126_cz b 
+                  on a.ci = b.ci
+                ) f
+                left join datamart.dw_user_kd_latest gg 
+                on f.phone_no=gg.key_phone_no
+                group by gg.key_phone_no) aa
+                on h.key_phone_no=aa.key_phone_no
+) i
+left join datamart.dw_user_prc_bxl_latest j 
+on i.phone_no = j.phone_no
+left join datamart.data_dm_uv_info_m k 
+on i.phone_no = k.phone_no 
+where k.dy='2019' 
+and k.dm='10'
+;
+ 
+ 
+select * from  workspace.zb_zj_20191126_result where sfkd ='0';
+
+
+
+drop table workspace.zb_zj_20191126_bcell;
+create table workspace.zb_zj_20191126_bcell 
+    row format delimited fields terminated by '\001' 
+    stored as orc tblproperties ('orc.compress'='ZLIB') 
+as 
+select ci,cell_name from 
+(select ci,cell_name,day,row_number() over ( partition by ci order by day desc ) num from
+(select a.ci,b.cell_name,b.day from workspace.zb_zj_20191126 a
+ left join business.base_cell_info b on a.ci = b.cell_id) c
+ ) last where last.num=1
+;
+
+
+drop table workspace.zb_zj_20191126_cz;
+create table workspace.zb_zj_20191126_cz 
+    row format delimited fields terminated by '\001' 
+    stored as orc tblproperties ('orc.compress'='ZLIB') 
+as 
+select *from (
+select dd.phone_no,dd.ci,dd.ci_num,row_number() over (partition by phone_no order by ci_num desc ) num  from (
+select bb.phone_no,bb.ci,count(ci) ci_num from (
+select * from (
+  select phone_no,ci,time_type,duration,dd,row_number() over (partition by phone_no,dd order by duration desc ) num  
+  from business.dwd_user_location_day  where dy='2019' and dm='11' and time_type='sf'
+  ) cc
+  where cc.num = 1
+  ) bb
+  group by phone_no,ci
+  ) dd
+  ) as ff
+  where ff.num=1 and ff.phone_no not like '10%' and ff.phone_no like '1%' 
+  ;
+  
