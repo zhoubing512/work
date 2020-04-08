@@ -75,6 +75,19 @@ inner join workspace.zb_mianzhu_user_20200408_changzhu b
 on a.phone_no = b.phone_no
 ;
 
+
+drop table workspace.zb_mianzhu_user_20200408_result_tmp;
+create table workspace.zb_mianzhu_user_20200408_result_tmp
+  row format delimited fields terminated by '\001' 
+  stored as orc tblproperties ('orc.compress'='ZLIB') 
+  as
+select distinct cell_id,bs_id,phone_no,opposite_no,call_times_month_avg,call_duration_month_avg
+from workspace.zb_mianzhu_user_20200408_result
+where phone_no <> opposite_no
+;
+--总量 323695
+
+
 --检验
 select count(*)
 from
@@ -85,55 +98,28 @@ group by phone_no,opposite_no
 having count(phone_no) = 1
 ) a
 limit 5;
---存在两条记录  60381
---存在一条记录  
---两个异网联系人及以上 
---一个异网联系人
-+--------------+--------------+------+
-|   phone_no   | opposite_no  | _c2  |
-+--------------+--------------+------+
-| 1301819FIcL  | 1301819FIcL  | 2    |
-| 1303825zwXt  | 1532869Ykju  | 2    |
-| 1303829qUbA  | 1530826lkvQ  | 2    |
-| 1315448Ynjy  | 1731157pHcQ  | 2    |
-| 1315868RwWQ  | 1809003RNWP  | 2    |
-+--------------+--------------+------+
-
-
-
-select *
-from zb_mianzhu_user_20200408_result_tmp
-where phone_no = '1301819FIcL' and opposite_no = '1301819FIcL'
-;
-select distinct opposite_no,phone_no,call_times,call_duration,cell_id,dm
-from datamart.data_dwb_cal_user_voc_yx_ds
-where dy = '2020' and dm = '03' and phone_no = '1301819FIcL'
-;
-
-6512654
+--存在两条记录  60381  两个基站同时有信息
+--存在一条记录  202935
 
 select count(*)
-from 
+from
 (
-select distinct  *
-from zb_mianzhu_user_20200408_result_tmp where phone_no <> opposite_no
+select phone_no,count(phone_no)
+from
+(
+select distinct phone_no,opposite_no,call_times_month_avg,call_duration_month_avg
+from zb_mianzhu_user_20200408_result_tmp
+) a
+group by a.phone_no
+having count(a.phone_no) = 9
 ) a
 ;
-select *
-from workspace.zb_mianzhu_user_20200408_result_tmp
-where phone_no = '1301819FIcL'
-
-
-drop table workspace.zb_mianzhu_user_20200408_result_tmp;
-create table workspace.zb_mianzhu_user_20200408_result_tmp
-  row format delimited fields terminated by '\001' 
-  stored as orc tblproperties ('orc.compress'='ZLIB') 
-  as
-select distinct cell_id,bs_id,phone_no,opposite_no,call_times_month_avg,call_duration_month_avg
-from workspace.zb_mianzhu_user_20200408_result
-;
-323697
-323695
-
-select *
-from workspace.zb_mianzhu_user_20200408_result_tmp
+--两个异网联系人及以上 53922
+--一个异网联系人 39427
+--总：93394
+--3个异网联系人 11985
+--2个异网联系人 21202
+--4个  6860
+--5个  4204
+--6个  2771
+--7个  1748
