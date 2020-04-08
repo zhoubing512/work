@@ -9,8 +9,11 @@ putdata -f 20200407_xiaoyuan.txt -t workspace.zb_xiaoyuan_phone_no_20200407;
 
 
 --近5个月常驻
-drop table workspace.zb_xiaoyuan_user_20200407_changzhu;
-create table workspace.zb_xiaoyuan_user_20200407_changzhu
+zb_xiaoyuan_user_20200407_changzhu
+--19年到20年全年
+zb_xiaoyuan_user_20200407_changzhu_19
+drop table workspace.zb_xiaoyuan_user_20200407_changzhu_19;
+create table workspace.zb_xiaoyuan_user_20200407_changzhu_19
   row format delimited fields terminated by '\001' 
   stored as orc tblproperties ('orc.compress'='ZLIB') 
   as
@@ -28,7 +31,7 @@ from
             (
                 select phone_no,dd,geo_code,time_type,concat(dy,'-',dm,'-',dd) as day_time
                 from business.dwd_user_location_day
-                where (dy = '2019'  and dm in ('11','12')) or dy = '2020'
+                where dy = '2019'or dy = '2020'
             ) a
             group by phone_no,geo_code,day_time
         ) a
@@ -43,14 +46,16 @@ left join
 ;
 
 --匹配归属分公司
-drop table workspace.zb_xiaoyuan_user_20200407_result;
-create table workspace.zb_xiaoyuan_user_20200407_result
+--5个月 zb_xiaoyuan_user_20200407_result
+
+drop table workspace.zb_xiaoyuan_user_20200407_result_19;
+create table workspace.zb_xiaoyuan_user_20200407_result_19
   row format delimited fields terminated by '\001' 
   stored as orc tblproperties ('orc.compress'='ZLIB') 
   as
 select distinct a.phone_no,b.county_name,b.area_name
 from workspace.th_en_zb_xiaoyuan_phone_no_20200407 a
-left join workspace.zb_xiaoyuan_user_20200407_changzhu b
+left join workspace.zb_xiaoyuan_user_20200407_changzhu_19 b
 on a.phone_no = b.phone_no
 ;
 
