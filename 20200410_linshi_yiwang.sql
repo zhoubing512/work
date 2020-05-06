@@ -3,7 +3,7 @@ create table workspace.zb_20200410_yiwang_linshi
   row format delimited fields terminated by '\001' 
   stored as orc tblproperties ('orc.compress'='ZLIB') 
   as
-  select *
+  select distinct *
   from
   (
         select distinct a.opp_phone_no,a.opp_type,b.county_name,b.area_name,b.grid_name

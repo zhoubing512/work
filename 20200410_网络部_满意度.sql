@@ -5,6 +5,23 @@ create table workspace.zb_wangluo_phone_info(quxian string,phone_no string)
 row format delimited fields terminated by ',' lines terminated by '\n' stored as textfile;
 putdata -f 20200410_wangluobu_manyidu.txt -t workspace.zb_wangluo_phone_info;
 
+--20200424 网络满意度
+--导入数据
+drop table workspace.zb_wangluo_phone_info_20200424;
+create table workspace.zb_wangluo_phone_info_20200424(quxian string,phone_no string)
+row format delimited fields terminated by ',' lines terminated by '\n' stored as textfile;
+putdata -f phone_no_net_satisfaction.txt -t workspace.zb_wangluo_phone_info_20200424;
+--加密表：th_en_zb_wangluo_phone_info_20200424
+
+--20200502 网络满意度
+--导入数据
+drop table workspace.zb_wangluo_phone_info_20200502;
+create table workspace.zb_wangluo_phone_info_20200502(phone_no string)
+row format delimited fields terminated by ',' lines terminated by '\n' stored as textfile;
+putdata -f 20200502_phone_no.txt -t workspace.zb_wangluo_phone_info_20200502;
+--加密表：th_en_zb_wangluo_phone_info_20200502
+
+
 --二月常驻小区1
 workspace.dwd_obode_kb_202002
 --二月常驻小区2
@@ -96,14 +113,17 @@ left join
 ;
 
 --匹配结果
-drop table workspace.zb_wangluo_user_20200410_result;
-create table workspace.zb_wangluo_user_20200410_result
+--workspace.zb_wangluo_user_20200410_result
+--workspace.zb_wangluo_user_20200424_result
+--workspace.zb_wangluo_user_20200502_result
+drop table workspace.zb_wangluo_user_20200502_result;
+create table workspace.zb_wangluo_user_20200502_result
   row format delimited fields terminated by '\001' 
   stored as orc tblproperties ('orc.compress'='ZLIB') 
   as
-select a.quxian,a.phone_no,b.cell_id,b.cell_name,b1.cell_id as cell_id2,b1.cell_name as cell_name2
+select a.phone_no,b.cell_id,b.cell_name,b1.cell_id as cell_id2,b1.cell_name as cell_name2
         ,c.prod_prc_name,c.main_prc_fee ,c.arpu,c.over_gprs_fee
-from workspace.th_en_zb_wangluo_phone_info a
+from workspace.th_en_zb_wangluo_phone_info_20200502 a
 left join  
 (
     select *
@@ -125,7 +145,7 @@ left join
     (
     select *
     from datamart.data_dm_uv_info_m
-    where dy = '2020' and dm = '02'
+    where dy = '2020' and dm = '03'
     ) a
     left join datamart.base_prc_info b
     on a.main_prod_prcid = b.prod_prcid
@@ -133,16 +153,19 @@ left join
 ;
 
 --去重后临时表
-drop table workspace.zb_wangluo_user_20200410_result_tmp;
-create table workspace.zb_wangluo_user_20200410_result_tmp
+--zb_wangluo_user_20200410_result_tmp
+--zb_wangluo_user_20200424_result_tmp
+--zb_wangluo_user_20200502_result_tmp
+drop table workspace.zb_wangluo_user_20200502_result_tmp;
+create table workspace.zb_wangluo_user_20200502_result_tmp
   row format delimited fields terminated by '\001' 
   stored as orc tblproperties ('orc.compress'='ZLIB') 
   as
-select distinct quxian,phone_no,cell_id,cell_id2,prod_prc_name,main_prc_fee ,arpu,over_gprs_fee
-from workspace.zb_wangluo_user_20200410_result
+select distinct phone_no,cell_id,cell_id2,prod_prc_name,main_prc_fee ,arpu,over_gprs_fee
+from workspace.zb_wangluo_user_20200502_result
 ;
 
-select count(*) from zb_wangluo_user_20200410_result_tmp where prod_prc_name is null;
+select count(*) from zb_wangluo_user_20200424_result_tmp where prod_prc_name is null;
 --检验
 select *
 from 
