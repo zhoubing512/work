@@ -21,6 +21,14 @@ row format delimited fields terminated by ',' lines terminated by '\n' stored as
 putdata -f 20200502_phone_no.txt -t workspace.zb_wangluo_phone_info_20200502;
 --加密表：th_en_zb_wangluo_phone_info_20200502
 
+--20200508 网络满意度
+--导入数据
+drop table workspace.zb_wangluo_phone_info_20200508;
+create table workspace.zb_wangluo_phone_info_20200508(phone_no string,phone_type string)
+row format delimited fields terminated by ',' lines terminated by '\n' stored as textfile;
+putdata -f 20200508_phone_info.txt -t workspace.zb_wangluo_phone_info_20200508;
+--加密表：th_en_zb_wangluo_phone_info_20200508
+
 
 --二月常驻小区1
 workspace.dwd_obode_kb_202002
@@ -116,14 +124,15 @@ left join
 --workspace.zb_wangluo_user_20200410_result
 --workspace.zb_wangluo_user_20200424_result
 --workspace.zb_wangluo_user_20200502_result
-drop table workspace.zb_wangluo_user_20200502_result;
-create table workspace.zb_wangluo_user_20200502_result
+--workspace.zb_wangluo_user_20200508_result
+drop table workspace.zb_wangluo_user_20200508_result;
+create table workspace.zb_wangluo_user_20200508_result
   row format delimited fields terminated by '\001' 
   stored as orc tblproperties ('orc.compress'='ZLIB') 
   as
 select a.phone_no,b.cell_id,b.cell_name,b1.cell_id as cell_id2,b1.cell_name as cell_name2
         ,c.prod_prc_name,c.main_prc_fee ,c.arpu,c.over_gprs_fee
-from workspace.th_en_zb_wangluo_phone_info_20200502 a
+from workspace.th_en_zb_wangluo_phone_info_20200508 a
 left join  
 (
     select *
@@ -156,13 +165,14 @@ left join
 --zb_wangluo_user_20200410_result_tmp
 --zb_wangluo_user_20200424_result_tmp
 --zb_wangluo_user_20200502_result_tmp
-drop table workspace.zb_wangluo_user_20200502_result_tmp;
-create table workspace.zb_wangluo_user_20200502_result_tmp
+--zb_wangluo_user_20200508_result_tmp
+drop table workspace.zb_wangluo_user_20200508_result_tmp;
+create table workspace.zb_wangluo_user_20200508_result_tmp
   row format delimited fields terminated by '\001' 
   stored as orc tblproperties ('orc.compress'='ZLIB') 
   as
 select distinct phone_no,cell_id,cell_id2,prod_prc_name,main_prc_fee ,arpu,over_gprs_fee
-from workspace.zb_wangluo_user_20200502_result
+from workspace.zb_wangluo_user_20200508_result
 ;
 
 select count(*) from zb_wangluo_user_20200424_result_tmp where prod_prc_name is null;
