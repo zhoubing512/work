@@ -66,8 +66,8 @@ putdata -f yidong_1yue_new.txt -t workspace.zb_yd_new_user_202001_02_03;
 --1901 workspace.zb_deyang_user_201901_changzhu
 
 
-drop table workspace.zb_deyang_user_201901_changzhu;
-create table workspace.zb_deyang_user_201901_changzhu
+drop table workspace.zb_deyang_user_202004_changzhu;
+create table workspace.zb_deyang_user_202004_changzhu
   row format delimited fields terminated by '\001' 
   stored as orc tblproperties ('orc.compress'='ZLIB') 
   as
@@ -79,7 +79,7 @@ from
     (
         select phone_no,dd,geo_code,time_type,concat(dy,'-',dm,'-',dd) as day_time
         from business.dwd_user_location_day
-        where dy = '2019' and dm = '01'
+        where dy = '2020' and dm = '04'
     ) a
     group by phone_no,geo_code,day_time
 ) a
