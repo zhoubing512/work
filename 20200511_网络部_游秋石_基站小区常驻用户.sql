@@ -346,6 +346,16 @@ create table workspace.zb_near_month_20200514_cz_result_days_finally
   where stay_days > 25 and phone_no not like '10%' and phone_no like '1%' 
   ;
 
+--4月全量常驻基站小区用户
+drop table workspace.zb_near_month_202004_cz_all;
+create table workspace.zb_near_month_202004_cz_all
+  row format delimited fields terminated by '\001' 
+  stored as orc tblproperties ('orc.compress'='ZLIB') 
+  as
+    select distinct ci,phone_no,stay_days
+    from workspace.zb_near_month_202004_cz
+    where stay_days > 25 and phone_no not like '10%' and phone_no like '1%' 
+  ;
 
 select count(distinct phone_no) from zb_near_month_20200514_cz_result_days where stay_days > 20 and phone_no is not null limit 5;
 select count(distinct cell_id) from zb_near_month_20200514_cz_result_days where phone_no is null limit 5;
