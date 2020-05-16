@@ -377,3 +377,30 @@ create table workspace.zb_near_month_20200514_cz_result_15
   ) b
   on a.cell_id = b.ci
   ;
+
+
+--20200516 第三批需求
+--关于2772攻坚居民区常驻客户号码的提取
+--数据需求目的：	用于宣传短信发送
+--数据筛选条件：	基站小区常驻用户号码
+--数据提取字段：	需要提取附件内涉及所有基站小区的常驻用户号码（五一节具有特殊性，请避开）
+
+--导入数据
+drop table workspace.zb_networks_cell_id_info_20200516;
+create table workspace.zb_networks_cell_id_info_20200516(cell_name string,cell_id string)
+row format delimited fields terminated by ',' lines terminated by '\n' stored as textfile;
+putdata -f 20200516_cell_id.txt -t workspace.zb_networks_cell_id_info_20200516;
+
+--匹配4月结果
+--每天5个小时以上，一月25天 结果
+drop table workspace.zb_near_month_20200516_cz_result_days_finally;
+create table workspace.zb_near_month_20200516_cz_result_days_finally 
+  row format delimited fields terminated by '\001' 
+  stored as orc tblproperties ('orc.compress'='ZLIB') 
+  as
+  select distinct a.cell_name,a.cell_id,b.phone_no
+  from workspace.zb_networks_cell_id_info_20200516 a
+  left join workspace.zb_near_month_202004_cz_all b
+  on a.cell_id = b.ci
+  ;
+
