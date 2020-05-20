@@ -404,3 +404,31 @@ create table workspace.zb_near_month_20200516_cz_result_days_finally
   on a.cell_id = b.ci
   ;
 
+--20200518 第四批需求
+--关于城区网络质优物业点短信发送客户号码提取的申请
+--数据需求目的：	用于质优小区客户短信宣传
+--数据筛选条件：	附件所有基站小区的常驻客户号码
+--数据提取字段：	需提取附件所有基站小区的常驻客户号码（去除五一）
+
+--导入数据
+drop table workspace.zb_networks_cell_id_info_20200518;
+create table workspace.zb_networks_cell_id_info_20200518(cell_id string)
+row format delimited fields terminated by ',' lines terminated by '\n' stored as textfile;
+putdata -f 20200518_cell_id.txt -t workspace.zb_networks_cell_id_info_20200518;
+
+--匹配4月结果
+--每天5个小时以上，一月25天 结果
+drop table workspace.zb_near_month_20200518_cz_result_days_finally;
+create table workspace.zb_near_month_20200518_cz_result_days_finally 
+  row format delimited fields terminated by '\001' 
+  stored as orc tblproperties ('orc.compress'='ZLIB') 
+  as
+  select distinct a.cell_id,b.phone_no
+  from workspace.zb_networks_cell_id_info_20200518 a
+  left join workspace.zb_near_month_202004_cz_all b
+  on a.cell_id = b.ci
+  ;
+
+--检查
+select count(distinct cell_id) from zb_near_month_20200518_cz_result_days_finally where phone_no is null  limit 5;
+select count(distinct phone_no) from zb_near_month_20200518_cz_result_days_finally limit 5;
