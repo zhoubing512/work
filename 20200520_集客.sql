@@ -380,3 +380,97 @@ group by sex_new
 | 女        | 251093       |
 |          | 1362086      |
 +----------+--------------+
+
+
+--1、德阳-成都、绵阳、重庆、资阳、眉山出行和来访情况。
+--2、年龄段情况（青年、中年、老年）
+--3、所有出行人员的性别情况。
+
+
+--workspace.zb_dy_2019_to_5place
+--workspace.zb_dy_2018_to_5place
+--workspace.zb_dy_2017_to_5place
+
+drop table workspace.zb_dy_2017_to_5place;
+create table workspace.zb_dy_2017_to_5place 
+  row format delimited fields terminated by '\001' 
+  stored as orc tblproperties ('orc.compress'='ZLIB') 
+  as 
+  select phone_no,months,mobilecity,count(phone_no) as months_times
+  from 
+  (
+    select distinct a.phone_no,a.data_date,substr(a.data_date,1,4) as years,substr(a.data_date,6,2) as months,substr(a.data_date,9,2) as day_time,
+            b.mobilecity
+    from 
+    (
+        select phone_no,data_date,sum(duration) as duration_time
+        from 
+        (
+            select phone_no,date_time,ci,duration,times,dy,dm,dd,substr(a.date_time,1,10) as data_date,substr(a.date_time,12,2) as data_hour,substr(a.date_time,15,2) as data_minute
+            from business.dwd_user_location_hour a
+            where dy = '2017'   
+        ) a
+        group by phone_no,data_date
+        having sum(duration) >= 60*60*4
+    ) a
+    inner join 
+    (
+        select *
+        from business.base_mobile_locale 
+        where (mobilecity = '成都' or mobilecity = '绵阳' or mobilecity = '重庆' or mobilecity = '资阳' or mobilecity = '眉山') and mobiletype = '中国移动'
+    ) b on substr(a.phone_no,1,7) = b.mobilenumber
+  ) a
+  group by months,mobilecity,phone_no
+  having count(phone_no) <= 15
+    ;
+
+--按月统计
+select mobilecity,months,count(distinct phone_no) as num_19
+from workspace.zb_dy_2019_to_5place a
+group by mobilecity,months
+order by mobilecity,months
+;
+--age/sex
+select mobilecity,sex_new,count(distinct phone_no) as sex_new_num
+from
+(
+    select distinct a.mobilecity,a.phone_no,case when (b.sex = '' or b.sex is null) then '其他' else b.sex end as sex_new
+    from workspace.zb_dy_2019_to_5place a
+    left join 
+    (
+        select * 
+        from 
+        (
+            select phone_no,sex,age,row_number() over(partition by phone_no order by dy,dm desc ) rn
+            from datamart.data_user_baseinfo 
+        ) a where rn = 1
+    ) b on a.phone_no = b.phone_no
+) a
+group by mobilecity,sex_new
+order by mobilecity,sex_new
+;
+
+--age
+select mobilecity,age_fenduan,count(distinct phone_no) as age_fenduan_num
+from
+(
+    select distinct a.mobilecity,a.phone_no,case when (b.sex = '' or b.sex is null) then '其他' else b.sex end as sex_new,
+            case when b.age <= 18 then '少年'
+          when b.age>18 and b.age <=40 then '青年'
+          when b.age>40 and b.age <=60 then '中年'
+          when b.age>60 then '老年'
+          else '其他' end as age_fenduan
+    from workspace.zb_dy_2019_to_5place a
+    left join 
+    (
+        select * 
+        from 
+        (
+            select phone_no,sex,age,row_number() over(partition by phone_no order by dy,dm desc ) rn
+            from datamart.data_user_baseinfo 
+        ) a where rn = 1
+    ) b on a.phone_no = b.phone_no
+) a
+group by mobilecity,age_fenduan
+order by mobilecity,age_fenduan
+;
