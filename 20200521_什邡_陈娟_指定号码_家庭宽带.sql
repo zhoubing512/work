@@ -151,6 +151,15 @@ create table workspace.zb_zhiding_phone_result_20200521
     on a.opposite_no = d.phone_no
   ) a where phone_no_5g is not null or phone_no_gaowei is not null or phone_no_nokd is not null
 ;
+--字段不能有数字
+drop table workspace.zb_zhiding_phone_result_20200521_temp;
+create table workspace.zb_zhiding_phone_result_20200521_temp
+  row format delimited fields terminated by '\001' 
+  stored as orc tblproperties ('orc.compress'='ZLIB') 
+  as
+    select phone_no,phone_no_5g as phone_no_fiveg,phone_no_gaowei,phone_no_nokd
+    from workspace.zb_zhiding_phone_result_20200521
+    ;
 
 --检查 
 select count(distinct phone_no)
@@ -450,7 +459,7 @@ select a.kd_209,a.kd_cell,a.fenju,a.key_phone_no,
         c.prod_prcid,   --下月宽带套餐代码
         c.prod_prc_name as next_month_kd_prod_prc_name,  --下月宽带套餐
         d.broad_prod_fee,  --宽带套餐价值
-        round(e.jiating_xiaofei,2), --家庭消费
+        round(e.jiating_xiaofei,2) as jiating_xiaofei, --家庭消费
         f.dur as jiating_kd_shangwang_times, --家庭宽带上网时长
         g.tv_watch_times,  --电视上网时长
         h.chengyuan_num,  --成员数
@@ -540,3 +549,50 @@ from workspace.zb_shifang_kd_info_20200522_result
 where means_id_a is not null
 limit 5;
 
+--需要解密的字段不能包含数字
+drop table workspace.zb_shifang_kd_info_20200522_result_temp;
+create table workspace.zb_shifang_kd_info_20200522_result_temp
+  row format delimited fields terminated by '\001' 
+  stored as orc tblproperties ('orc.compress'='ZLIB') 
+  as
+  select kd_209 as kd_no,
+        kd_cell,
+        fenju,
+        key_phone_no,
+        prod_prcid_kdtc,
+        prod_prc_name_kdtc,
+        kd_state,
+        prod_prcid,
+        next_month_kd_prod_prc_name,
+        broad_prod_fee,
+        jiating_xiaofei,
+        jiating_kd_shangwang_times,
+        tv_watch_times,
+        chengyuan_num,
+        key_prod_prc_name,
+        means_id_a,
+        means_name_a,
+        innet_date_a,
+        key_phone_avg_3mon_arpu,
+        cy_phone1 as cy_phone_one,
+        prod_prc_name1,
+        main_prc_fee1,
+        avg_3mon_arpu1,
+        cy_phone2 as cy_phone_two,
+        prod_prc_name2,
+        main_prc_fee2,
+        avg_3mon_arpu2,
+        cy_phone3 as cy_phone_three,
+        prod_prc_name3,
+        main_prc_fee3,
+        avg_3mon_arpu3,
+        cy_phone4 as cy_phone_four,
+        prod_prc_name4,
+        main_prc_fee4,
+        avg_3mon_arpu4,
+        cy_phone5 as cy_phone_five,
+        prod_prc_name5,
+        main_prc_fee5,
+        avg_3mon_arpu5
+  from workspace.zb_shifang_kd_info_20200522_result
+  ;

@@ -207,7 +207,7 @@ order by mobilecity,sex_new
 select mobilecity,sex_new,sum(months_times) as sex_new_num
 from
 (
-    select distinct a.mobilecity,a.phone_no,a.months_times,case when (b.sex = '' or b.sex is null) then '其他' else b.sex end as sex_new
+    select a.mobilecity,a.phone_no,a.months_times,case when (b.sex = '' or b.sex is null) then '其他' else b.sex end as sex_new
     from workspace.zb_dy_2019_to_5place_to_luojiang_result a
     left join 
     (
@@ -251,7 +251,7 @@ order by mobilecity,age_fenduan
 select mobilecity,age_fenduan,sum(months_times) as age_fenduan_num
 from
 (
-    select distinct a.mobilecity,a.phone_no,a.months_times,case when (b.sex = '' or b.sex is null) then '其他' else b.sex end as sex_new,
+    select a.mobilecity,a.phone_no,a.months_times,case when (b.sex = '' or b.sex is null) then '其他' else b.sex end as sex_new,
             case when b.age <= 18 then '少年'
           when b.age>18 and b.age <=40 then '青年'
           when b.age>40 and b.age <=60 then '中年'
