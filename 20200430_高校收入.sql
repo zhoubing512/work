@@ -35,14 +35,14 @@ from
     from 
     (
         select *
-        from workspace.th_gaoxiao_alluser_detail_2015_to_2019_03_count_result
+        from workspace.th_gaoxiao_alluser_detail_2015_to_2019_11_count_result
         where student_type='在读' and run_name in('正常','无') and id_no <>'0'
      ) a
     left join 
     ( 
         select * 
         from datamart.dw_user_fee_real_v2
-        where dy = '2019' and dm = '03'
+        where dy = '2019' and dm = '11'
     ) b on a.phone_no = b.phone_no
 ) a group by college_name
 order by a.college_name
