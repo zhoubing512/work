@@ -432,3 +432,70 @@ create table workspace.zb_near_month_20200518_cz_result_days_finally
 --检查
 select count(distinct cell_id) from zb_near_month_20200518_cz_result_days_finally where phone_no is null  limit 5;
 select count(distinct phone_no) from zb_near_month_20200518_cz_result_days_finally limit 5;
+
+
+--20200526 第五批需求
+--关于城区网络质优物业点短信发送客户号码提取的申请
+--数据需求目的：	用于质优小区客户短信宣传
+--数据筛选条件：	附件所有基站小区的常驻客户号码
+--数据提取字段：	需提取附件所有基站小区的常驻客户号码（去除五一）
+
+--导入数据
+drop table workspace.zb_networks_cell_id_info_20200526;
+create table workspace.zb_networks_cell_id_info_20200526(cell_name string,cell_id string,quxian string)
+row format delimited fields terminated by ',' lines terminated by '\n' stored as textfile;
+putdata -f shujubiao_nongcun.txt -t workspace.zb_networks_cell_id_info_20200526;
+
+--匹配4月结果
+--每天5个小时以上，一月25天 结果
+drop table workspace.zb_near_month_20200526_cz_result_days_finally;
+create table workspace.zb_near_month_20200526_cz_result_days_finally 
+  row format delimited fields terminated by '\001' 
+  stored as orc tblproperties ('orc.compress'='ZLIB') 
+  as
+  select distinct a.cell_id,b.phone_no
+  from workspace.zb_networks_cell_id_info_20200526 a
+  left join workspace.zb_near_month_202004_cz_all b
+  on a.cell_id = b.ci
+  ;
+--检查
+select count(distinct cell_id) from zb_near_month_20200526_cz_result_days_finally where phone_no is null  limit 5;
+select count(distinct phone_no) from zb_near_month_20200526_cz_result_days_finally limit 5;
+
+--20200526 农村第1批需求 
+--关于城区网络质优物业点短信发送客户号码提取的申请
+--数据需求目的：	用于质优小区客户短信宣传
+--数据筛选条件：	附件所有基站小区的常驻客户号码
+--数据提取字段：	需提取附件所有基站小区的常驻客户号码（去除五一）
+
+--导入数据
+drop table workspace.zb_networks_cell_id_info_20200526_nongcun;
+create table workspace.zb_networks_cell_id_info_20200526_nongcun(cell_name string,cell_id string,quxian string)
+row format delimited fields terminated by ',' lines terminated by '\n' stored as textfile;
+putdata -f nongcun_1_info.txt -t workspace.zb_networks_cell_id_info_20200526_nongcun;
+
+--匹配4月结果
+--每天5个小时以上，一月25天 结果
+drop table workspace.zb_near_month_20200526_cz_result_days_finally_nongcun;
+create table workspace.zb_near_month_20200526_cz_result_days_finally_nongcun 
+  row format delimited fields terminated by '\001' 
+  stored as orc tblproperties ('orc.compress'='ZLIB') 
+  as
+  SELECT a.cell_id,a.phone_no
+  FROM
+  (
+    select distinct a.cell_id,b.phone_no
+    from workspace.zb_networks_cell_id_info_20200526_nongcun a
+    left join workspace.zb_near_month_202004_cz_all b
+    on a.cell_id = b.ci
+  ) a
+  LEFT JOIN workspace.th_en_zb_sensitive_phone_info_20200521 b
+  ON a.phone_no = b.phone_no
+  WHERE b.phone_no IS NULL
+  ;
+
+--检查
+select count(distinct cell_id) from zb_near_month_20200526_cz_result_days_finally_nongcun where phone_no is null  limit 5;
+--483
+select count(distinct phone_no) from zb_near_month_20200526_cz_result_days_finally_nongcun limit 5;
+--130726
