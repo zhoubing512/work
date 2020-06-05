@@ -72,8 +72,97 @@
 --列名：主键(自增)、区县、分局、网格、基站名称、经纬度(用字符串存储)、备用字段1、备用字段2、备用字段3、创建时间、更新时间
 
 
+--表5：dv_base_region_info
+--列名：主键(自增)、区县id、区县、分局id、分局、网格id、网格、备用字段1、备用字段2、备用字段3、创建时间、更新时间
 
 
+--提取基站经纬度信息(5G)
+SELECT bs_id,bs_name,bs_type,lon,lat
+FROM business.base_cell_info 
+WHERE day = '20200526'
+Limit 5
+;
+
+
+--区县、网格、分局(准备数据，基础数据) 
+--网格对应的分局、区县 都必须从网格名称中获取，否则不准 有可能一个网格对应2个或者3个分局、区县
+drop table workspace.zb_dv_base_region_info_temp;
+create table workspace.zb_dv_base_region_info_temp 
+  row format delimited fields terminated by '\001' 
+  stored as orc tblproperties ('orc.compress'='ZLIB') 
+  as 
+SELECT county_no,county_name,area_no,split(grid_name,'网格')[0] as area_name,grid_id,grid_name,data_date
+FROM business.base_deyang_country_geocode
+LIMIT 5
+;
+
+drop table workspace.zb_dv_base_region_info;
+create table workspace.zb_dv_base_region_info 
+  row format delimited fields terminated by '\001' 
+  stored as orc tblproperties ('orc.compress'='ZLIB') 
+  as 
+SELECT *
+FROM
+(
+SELECT DISTINCT CASE WHEN substr(area_name,1,2) = '旌阳' THEN 1 
+             WHEN substr(area_name,1,2) = '广汉' THEN 2 
+             WHEN substr(area_name,1,2) = '什邡' THEN 3 
+             WHEN substr(area_name,1,2) = '绵竹' THEN 4 
+             WHEN substr(area_name,1,2) = '中江' THEN 5 
+             WHEN substr(area_name,1,2) = '罗江' THEN 6 
+             ELSE NULL END AS county_no,
+            substr(area_name,1,2) as county_name,area_no,substr(area_name,3) as area_name,grid_id,grid_name,'' as reserve1,'' as reserve2,'' as reserve3,
+        from_unixtime(unix_timestamp(),'yyyy-MM-dd HH:mm:ss') as create_time,
+        from_unixtime(unix_timestamp(),'yyyy-MM-dd HH:mm:ss') as update_time
+FROM 
+(
+    SELECT *
+    FROM workspace.zb_dv_base_region_info_temp
+    WHERE data_date = '2020-04-07'
+) a
+ORDER BY county_name,area_name,grid_name
+) a WHERE county_no IS NOT NULL
+;
+
+--导出数据
+--getdata -t workspace.zb_dv_base_region_info
+
+--检验 
+--最新时间为2020-04-07
+SELECT county_name,area_name,data_date FROM workspace.zb_dv_base_region_info_temp ORDER BY data_date desc limit 15; 
+
+SELECT grid_name,COUNT(grid_name)
+FROM workspace.zb_dv_base_region_info
+GROUP BY grid_name
+HAVING COUNT(grid_name) > 1
+;
+--一个网格，多条记录
+| 广汉小汉分局网格30  | 2    |
+| 广汉小汉分局网格32  | 2    |
+| 广汉小汉分局网格33  | 2    |
+| 广汉连山分局网格21  | 2    |
+| 广汉连山分局网格22  | 2    |
+| 广汉连山分局网格24  | 3    |
+| 旌阳东湖分局网格2   | 2    |
+| 旌阳东湖分局网格5   | 3    |
+| 旌阳孝泉分局网格1   | 3    |
+| 旌阳孝泉分局网格3   | 2    |
+| 旌阳工农村分局网格1  | 2    |
+| 旌阳工农村分局网格2  | 2    |
+| 旌阳黄许分局网格4   | 2    |
+| 绵竹土门分局网格6   | 2    |
+| 绵竹富新分局网格5   | 3    |
+| 绵竹汉旺分局网格6   | 2    |
+| 罗江略坪分局网格2   | 2    |
+| 罗江略坪分局网格4   | 2    |
+| 罗江略坪分局网格6   | 2    |
+SELECT * FROM workspace.zb_dv_base_region_info WHERE grid_name = '旌阳孝泉分局网格1';
+SELECT count(DISTINCT area_name) FROM workspace.zb_dv_base_region_info;
+SELECT county_no,county_name,area_name,grid_name,grid_id FROM workspace.zb_dv_base_region_info WHERE area_name = '城北分局';
+SELECT area_name,count(area_name) FROM 
+(
+SELECT DISTINCT county_name,area_name FROM workspace.zb_dv_base_region_info
+) a GROUP BY area_name HAVING count(area_name) > 1;
 
 
 --携转表
