@@ -633,3 +633,93 @@ select count(distinct cell_id) from zb_near_month_20200604_cz_result_days_finall
 --610
 select count(distinct phone_no) from zb_near_month_20200604_cz_result_days_finally_nongcun limit 5;
 --120327
+
+
+--20200605 农村第5批需求 
+--数据需求目的：	烦请提取常驻客户号码
+--数据用途：	只用于分析统计(号码将加密提供)
+--是否进行脱敏处理：	敏感客户全部剔除
+--数据筛选条件及提取字段：	附件基站小区常驻客户号码
+
+--导入数据
+drop table workspace.zb_networks_cell_id_info_20200605_nongcun;
+create table workspace.zb_networks_cell_id_info_20200605_nongcun(cell_name string,cell_id string,quxian string)
+row format delimited fields terminated by ',' lines terminated by '\n' stored as textfile;
+putdata -f rural_five_info.txt -t workspace.zb_networks_cell_id_info_20200605_nongcun;
+
+--剔除敏感客户
+--datamart.data_dw_zz_all_vipuser_nocall_latest   敏感客户
+--datamart.data_dw_zz_all_outbound_flag_hz_latest    多次营销
+
+--匹配4月结果
+--每天5个小时以上，一月25天 结果
+drop table workspace.zb_near_month_20200605_cz_result_days_finally_nongcun;
+create table workspace.zb_near_month_20200605_cz_result_days_finally_nongcun 
+  row format delimited fields terminated by '\001' 
+  stored as orc tblproperties ('orc.compress'='ZLIB') 
+  as
+  SELECT DISTINCT a.cell_id,a.phone_no
+  FROM
+  (
+    select distinct a.cell_id,b.phone_no
+    from workspace.zb_networks_cell_id_info_20200605_nongcun a
+    left join workspace.zb_near_month_202005_cz_all b
+    on a.cell_id = b.ci
+  ) a
+  LEFT JOIN datamart.data_dw_zz_all_outbound_flag_hz_latest b
+  ON a.phone_no = b.opposite_no
+  LEFT JOIN datamart.data_dw_zz_all_vipuser_nocall_latest c
+  ON a.phone_no = c.phone_no
+  WHERE c.phone_no IS NULL OR b.opposite_no IS NULL
+  ;
+
+--检查
+select count(distinct cell_id) from zb_near_month_20200605_cz_result_days_finally_nongcun where phone_no is null  limit 5;
+--647
+select count(distinct phone_no) from zb_near_month_20200605_cz_result_days_finally_nongcun limit 5;
+--169439
+
+
+--20200609 农村第6批需求 
+--数据需求目的：	烦请提取常驻客户号码
+--数据用途：	只用于分析统计(号码将加密提供)
+--是否进行脱敏处理：	敏感客户全部剔除
+--数据筛选条件及提取字段：	附件基站小区常驻客户号码
+
+--导入数据
+drop table workspace.zb_networks_cell_id_info_20200609_nongcun;
+create table workspace.zb_networks_cell_id_info_20200609_nongcun(cell_name string,cell_id string,quxian string)
+row format delimited fields terminated by ',' lines terminated by '\n' stored as textfile;
+putdata -f rural_six_info.txt -t workspace.zb_networks_cell_id_info_20200609_nongcun;
+
+--剔除敏感客户
+--datamart.data_dw_zz_all_vipuser_nocall_latest   敏感客户
+--datamart.data_dw_zz_all_outbound_flag_hz_latest    多次营销
+
+--匹配4月结果
+--每天5个小时以上，一月25天 结果
+drop table workspace.zb_near_month_20200609_cz_result_days_finally_nongcun;
+create table workspace.zb_near_month_20200609_cz_result_days_finally_nongcun 
+  row format delimited fields terminated by '\001' 
+  stored as orc tblproperties ('orc.compress'='ZLIB') 
+  as
+  SELECT DISTINCT a.cell_id,a.phone_no
+  FROM
+  (
+    select distinct a.cell_id,b.phone_no
+    from workspace.zb_networks_cell_id_info_20200609_nongcun a
+    left join workspace.zb_near_month_202005_cz_all b
+    on a.cell_id = b.ci
+  ) a
+  LEFT JOIN datamart.data_dw_zz_all_outbound_flag_hz_latest b
+  ON a.phone_no = b.opposite_no
+  LEFT JOIN datamart.data_dw_zz_all_vipuser_nocall_latest c
+  ON a.phone_no = c.phone_no
+  WHERE c.phone_no IS NULL OR b.opposite_no IS NULL
+  ;
+
+--检查
+select count(distinct cell_id) from zb_near_month_20200609_cz_result_days_finally_nongcun where phone_no is null  limit 5;
+--825
+select count(distinct phone_no) from zb_near_month_20200609_cz_result_days_finally_nongcun limit 5;
+--118350
